@@ -22,7 +22,7 @@ void colocarArquivoStruct(FILE * fp) {
     int lendo = 0;
     int numbers[6][2];
 
-    for (i = 0; i < MAXNOS; i++) {
+    for (i = 0; i < MAX_NO; i++) {
         numbers[i][0] = 0;
         numbers[i][1] = 0;
     }
@@ -80,7 +80,7 @@ void colocarArquivoStruct(FILE * fp) {
 
                         //Achar + de 3 enlaces
                         if (j == 0) {
-                            for (k = 0; k < MAXNOS; k++) {
+                            for (k = 0; k < MAX_NO; k++) {
                                 if (numbers[k][0] == ligacao.enlaces[i][0]) {
                                     numbers[k][1] += 1;
                                     if (numbers[k][1] > 3) {

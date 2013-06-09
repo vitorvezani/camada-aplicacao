@@ -14,10 +14,13 @@ void *iniciarAplicacao() {
 
     int i;
 
-    ic_num = 0;
-
     for (i = 0; i < MAX_PS; i++)
         ps[i] = -1;
+
+    for (i = 0; i < MAX_IC; i++){
+        ic[i].ps = -1;        
+        ic[i].conectado = -1;
+    }
 
     int te, tr;
     pthread_t threadReceberPacotes;
@@ -41,19 +44,36 @@ void *receberPacotes() {
 
         struct pacote pacote_rcv;
 
+        int tam_arq;
+        FILE *fp;
+        struct stat s;
+
         //Trava mutex de sincronismo
         pthread_mutex_lock(&mutex_apli_trans_rcv2);
 
-        if (buffer_apli_trans_rcv.tam_buffer != -1) {
+        retirarPacotesBufferApliTransRcv(&pacote_rcv);
 
-            retirarPacotesBufferApliTransRcv(&pacote_rcv);
+        if (pacote_rcv.tipo == BAIXAR && strlen(pacote_rcv.buffer) == pacote_rcv.tam_buffer)
+        {
 
-            if (strlen(pacote_rcv.buffer) >= pacote_rcv.tam_buffer)
-            {
-                printf("[APLIC - RCV] Tam_buffer: '%d' Bytes\n", pacote_rcv.tam_buffer);
-                printf("[APLIC - RCV] Buffer: '%s'\n", pacote_rcv.buffer);
-            }
+            printf("segmento.tipo: '%d', tacote.buffer: '%zd', pacote.tam_buffer: '%d'\n", pacote_rcv.tipo, strlen(pacote_rcv.buffer), pacote_rcv.tam_buffer);
+            printf("[APLIC - RCV] Pedido para baixar o arquivo '%s'\n", pacote_rcv.buffer);
 
+
+        fp = fopen(pacote_rcv.buffer, "r");
+            if(!fp)
+            perror("Fopen()");
+
+        tam_arq = s.st_size;
+
+        printf("Tamanho do arquivo '%s': '%d' bytes\n",pacote_rcv.buffer,tam_arq);
+
+        }
+
+        else if (strlen(pacote_rcv.buffer) >= pacote_rcv.tam_buffer)
+        {
+            printf("[APLIC - RCV] Tam_buffer: '%d' Bytes\n", pacote_rcv.tam_buffer);
+            printf("[APLIC - RCV] Buffer: '%s'\n", pacote_rcv.buffer);
         }
 
         //Destrava mutex de sinconismo
@@ -76,42 +96,62 @@ int aps() {
 }
 
 int fps(int num_ps) {
+    int i;
 
-    ps[num_ps] = -1;
+    for (i = 0; i < MAX_IC; i++)
+        if (ic[i].conectado == 1 && ic[i].ps == num_ps)
+            return -1;
 
-    printf("[APLIC - FPS]Recebi pedido de fechamento do ps '%d'\n", num_ps);
+    if(ps[num_ps] != -1)
+        ps[num_ps] = -1;
+    else
+        return 0;
 
     return 1;
 }
 
-struct ic conectar(int env_no, int num_ps) {
-
-    struct ic ic;
+int conectar(int env_no, int num_ps) {
 
     int i;
     int flag_existe = 0;
+    int flag_alocado = 0;
+    int index = -1;
 
     struct pacote pacote_env;
 
-    printf("[APLIC - CON]Recebi pedido para conectar no no : '%d', ps '%d'\n", env_no, num_ps);
+#ifdef DEBBUG_APLI
+    printf("[APLIC - CON]Recebi pedido para conectar no nó : '%d' & ps '%d'\n", env_no, num_ps);
+#endif
 
     for (i = 0; i < MAX_PS; i++)
         if (ps[num_ps] == 1)
             flag_existe = 1;
 
-    if (flag_existe == 1) {
+    for (i = 0; i < MAX_IC; i++)
+        if (ic[i].conectado == -1){
+            index = i;
+            break;
+        }
+
+    for (i = 0; i < MAX_IC; i++)
+        if (ic[i].ps == num_ps){
+            flag_alocado = 1;
+            break;
+        }
+
+    // Se ps existe e há ic livre
+    if (flag_existe == 1 && index != -1 && flag_alocado == 0) {
         /* Produzir buffer_rede_enlace_env */
         pthread_mutex_lock(&mutex_apli_trans_env1);
 
         pacote_env.tipo = CONECTAR;
 
-        ic.num    = ic_num;
-        ic.env_no = env_no;
-        ic.ps     = num_ps;
-        ic.num_no = file_info.num_no;
-        ic_num++;
+        ic[index].conectado = 1;
+        ic[index].env_no    = env_no;
+        ic[index].ps        = num_ps;
+        ic[index].num_no    = file_info.num_no;
 
-        colocarPacotesBufferApliTransEnv(pacote_env, ic);
+        colocarPacotesBufferApliTransEnv(pacote_env, ic[index]);
 
         /* Produzir buffer_rede_enlace_env */
         pthread_mutex_unlock(&mutex_apli_trans_env2);
@@ -124,30 +164,36 @@ struct ic conectar(int env_no, int num_ps) {
         /* Consome resposta da camada de enlace */
         pthread_mutex_unlock(&mutex_apli_trans_env1);
 
-        ic.end_buffer = buffer_apli_trans_env.retorno;
+        ic[index].end_buffer = buffer_apli_trans_env.retorno;
         
-        return ic;
+        return index;
 
     } else {
 
-        ic.env_no = -1;
-        return ic;
+    return -1;
 
     }
 }
 
-int desconectar(struct ic ic) {
+int desconectar(index) {
 
     struct pacote pacote_env;
+    int i;
 
-    printf("[APLIC - DESC]Recebi pedido para desconectar do env_no: '%d' e ps: '%d'\n", ic.env_no, ic.ps);
+    for (i = 0; i < MAX_IC; i++)
+        if (ic[index].conectado == -1)
+            return 0;
+
+#ifdef DEBBUG_APLI
+    printf("[APLIC - DESC]Recebi pedido para desconectar o ic que liga env_no: '%d' e ps: '%d'\n", ic[index].env_no, ic[index].ps);
+#endif
 
     /* Produzir buffer_rede_enlace_env */
     pthread_mutex_lock(&mutex_apli_trans_env1);
 
     pacote_env.tipo = DESCONECTAR;
 
-    colocarPacotesBufferApliTransEnv(pacote_env, ic);
+    colocarPacotesBufferApliTransEnv(pacote_env, ic[index]);
 
     /* Produzir buffer_rede_enlace_env */
     pthread_mutex_unlock(&mutex_apli_trans_env2);
@@ -157,33 +203,50 @@ int desconectar(struct ic ic) {
 
     retornoTransporte(pacote_env);
 
+    ic[index].conectado = -1;
+
     /* Consome resposta da camada de enlace */
     pthread_mutex_unlock(&mutex_apli_trans_env1);
 
     return 1;
 }
 
-void baixar(struct ic ic, char *arq) {
+int baixar(int index, char *data) {
 
     struct pacote pacote_env;
+    int i, flag_existe = 0;
 
-    printf("[APLIC - BAIXAR] Data: '%s'\n", arq);
-    printf("[APLIC - BAIXAR] Tam_buffer: '%zd'\n", strlen(arq));
+    printf("[APLIC - BAIXAR] Data: '%s'\n", data);
+    printf("[APLIC - BAIXAR] Tam_buffer: '%zd'\n", strlen(data));
 
-    //Produz no buffer apli_trans
-    pthread_mutex_lock(&mutex_apli_trans_env1);
+    for (i = 0; i < MAX_IC; i++)
+    {
+        if (ic[index].conectado == 1)
+        {
+            flag_existe = 1;
 
-    pacote_env.tipo = DADOS;
-    pacote_env.tam_buffer = strlen(arq);
-    strncpy(pacote_env.buffer, arq, strlen(arq));
+            //Produz no buffer apli_trans
+            pthread_mutex_lock(&mutex_apli_trans_env1);
 
-    pacote_env.buffer[strlen(arq) + 1] = '\0';
+            pacote_env.tipo = BAIXAR;
+            pacote_env.tam_buffer = strlen(data);
+            strncpy(pacote_env.buffer, data, strlen(data));
 
-    colocarPacotesBufferApliTransEnv(pacote_env, ic);
+            pacote_env.buffer[strlen(data)] = '\0';
 
-    //Produz no buffer apli_trans
-    pthread_mutex_unlock(&mutex_apli_trans_env2);
+            colocarPacotesBufferApliTransEnv(pacote_env, ic[index]);
 
+            //Produz no buffer apli_trans
+            pthread_mutex_unlock(&mutex_apli_trans_env2);
+
+            break;
+        }
+    }
+    if (flag_existe)
+    {
+        return pacote_env.tam_buffer = strlen(data);
+    }else
+        return -1;
 }
 
 void colocarPacotesBufferApliTransEnv(struct pacote pacote, struct ic ic) {
@@ -200,8 +263,7 @@ void colocarPacotesBufferApliTransEnv(struct pacote pacote, struct ic ic) {
 
 void retirarPacotesBufferApliTransRcv(struct pacote *pacote) {
 
-    pacote->tam_buffer = buffer_apli_trans_rcv.data.tam_buffer;
-    strcpy(pacote->buffer, buffer_apli_trans_rcv.data.buffer);
+    memcpy(pacote, &buffer_apli_trans_rcv.data, sizeof (buffer_apli_trans_rcv.data));
 
 }
 
@@ -211,9 +273,13 @@ void retornoTransporte() {
     if (buffer_apli_trans_env.retorno != NULL)
 
         if (buffer_apli_trans_env.tipo == CONECTAR) {
+#ifdef DEBBUG_APLI
             printf("[APLIC - RET]Alocado o buffer -> end_buffer: '%p' \n", buffer_apli_trans_env.retorno);
             printf("Esperando syn para estabelecer conexão!\n");
+#endif
         } else if (buffer_apli_trans_env.tipo == DESCONECTAR) {
+#ifdef DEBBUG_APLI
             printf("[APLIC - RET]Conexão encerrada com sucesso! end_buffer: '%p' \n", buffer_apli_trans_env.retorno);
+#endif
         }
 }

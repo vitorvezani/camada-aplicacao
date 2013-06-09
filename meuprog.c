@@ -17,11 +17,8 @@ int main(int argc, char const *argv[]) {
     int tic;
     pthread_t threadinicializarCamadas;
 
-    int env_no = 3;
-
-    struct ic ic, ic2;
-
-    int ps, ps2;
+    char cmd[128];
+    char *ptrFuncao, *ptrParam1, *ptrParam2;
 
     /* Testa Parametros */
     if (argc != 3) {
@@ -44,61 +41,105 @@ int main(int argc, char const *argv[]) {
 
     usleep(20000);
 
-if (file_info.num_no == 1)
-{
+    printf("Funções Disponíveis:\n'aps(),abrir_ponto_serviço()'\n'fps(ps),fechar_ponto_serviço(ps)'\n'conectar(nó,ps),c(nó,ps)'\n'desconectar(ic),d(ic)'\n'baixar(ic,ar.ext),b(ic,arq.ext)'\n'clear()\n");
+    printf("Digite a função e os respectivos parametros\n");
 
-    getchar();
+while (TRUE){
 
-    ps = aps();
+    printf("$ ");
+    fgets(cmd , 127 , stdin);
+    cmd[strlen(cmd)-1]='\0';
 
-    if (ps == -1)
-        printf("Impossivel criar ps\n");
-    else
-        printf("ps criado '%d'\n", ps);
+    ptrFuncao = strtok(cmd," ");
 
-    getchar();
+    if(strcasecmp(ptrFuncao,"aps") == 0 || strcasecmp(ptrFuncao,"abrir_ponto_serviço") == 0)
+    {
+        int ps;
 
-    ic = conectar(env_no, ps);
+        ps = aps();
 
-    if(ic.env_no == -1)
-        printf("Erro ao conectar, verifique  a existencia do ps\n");
-    
-    getchar();
+        if (ps == -1)
+            printf("Impossivel criar ps.\n");
+        else
+            printf("ps criado '%d'.\n", ps);
 
-    baixar(ic, "O núcleo Linux foi desenvolvido pelo programador finlandês Linus Torvalds, inspirado no sistema Minix. O seu código fonte está disponível sob a licença GPL (versão 2) para que qualquer um o possa utilizar, estudar, modificar e distribuir livremente de acordo com os termos da licença.");
+    }else if(strcasecmp(ptrFuncao,"fps") == 0 || strcasecmp(ptrFuncao,"fechar_ponto_serviço") == 0)
+    {
+        int fpsRet = 0;
 
-    getchar();
+        ptrParam1 = strtok(NULL," ");
 
-    desconectar(ic);
+        if (ptrParam1 != NULL)
+        {
+            fpsRet = fps(atoi(ptrParam1));
 
-    getchar();
+            if (fpsRet == 1)
+                printf("ps fechado!\n");
+            else if (fpsRet == 0)
+                printf("Erro ao fechar ps, verifique a existencia do ps.\n");
+            else if (fpsRet == -1)
+                printf("Erro ao fechar ps, ps conectado por um ic, primeiro desconecte ic.\n");
+        }else
+            printf("Parametros invalidos, utilize fps 'ps'\n");
 
-    ps2 = aps();
+    }else if(strcasecmp(ptrFuncao,"conectar") == 0 || strcasecmp(ptrFuncao,"c") == 0)
+    {
+        int conectarRet;
 
-    if (ps2 == -1)
-        printf("Impossivel criar ps\n");
-    else
-        printf("ps criado '%d'\n", ps2);
+        ptrParam1 = strtok(NULL," ");
+        ptrParam2 = strtok(NULL," ");
 
-    getchar();
+        if (ptrParam1 != NULL || ptrParam2 != NULL)
+        {
+            conectarRet = conectar(atoi(ptrParam1), atoi(ptrParam2));
 
-    ic2 = conectar(env_no - 1, ps2);
+            if(conectarRet != -1)
+                printf("IC conectado: '%d'\n", conectarRet);
+            else
+                printf("Erro ao conectar, verifique a existencia do ps ou se o ps já está alocado.\n");
+        }else
+            printf("Parametros invalidos, utilize conectar 'dst_nó' 'ps'\n");
 
-    if(ic2.env_no == -1)
-        printf("Erro ao conectar, verifique  a existencia do ps\n");
-    else
-        printf("Conectado com sucesso!\n");
+    }else if(strcasecmp(ptrFuncao,"desconectar") == 0 || strcasecmp(ptrFuncao,"d") == 0)
+    {
+        int desconectarRet;
 
-    getchar();
+        ptrParam1 = strtok(NULL," ");
 
-    baixar(ic2, "Microsoft Windows é uma popular família de sistemas operacionais criados pela Microsoft, empresa fundada por Bill Gates e Paul Allen. Antes da versão NT, era uma interface gráfica para o sistema operacional MS-DOS.");
+        if (ptrParam1 != NULL)
+        {
+            desconectarRet = desconectar(atoi(ptrParam1));
 
-    getchar();
+            if (!desconectarRet)
+                printf("Erro ao desconectar, verifique a existencia do ic.\n");
+            else
+                printf("IC Desconectado com sucesso!\n");
+        }else
+            printf("Parametros invalidos, utilize desconectar 'ic'\n");
 
-    desconectar(ic2);
+    }else if(strcasecmp(ptrFuncao,"baixar") == 0 || strcasecmp(ptrFuncao,"b") == 0)
+    {
+        int baixarRet;
+
+        ptrParam1 = strtok(NULL," ");
+        ptrParam2 = strtok(NULL," ");
+
+        if (ptrParam1 != NULL || ptrParam2 != NULL)
+        {
+            baixarRet = baixar( atoi(ptrParam1) , ptrParam2 );
+
+            if (baixarRet == -1)
+                printf("Erro ao baixar, verifique a existencia do ic.\n");
+        }else
+            printf("Parametros invalidos, utilize baixar 'ic' 'nome_arq.ext'\n");
+
+    }else if(strcasecmp(ptrFuncao,"clear") == 0)
+    {
+        system("clear");
+    }else
+        printf("Opção invalida!.\n");
 
 }
-
     /* Espera a Thread terminar */
     pthread_join(threadinicializarCamadas, NULL);
 

@@ -12,17 +12,22 @@
 #include <stdlib.h>			/* para exit() */
 #include <string.h>			/* para manipulação de string */
 #include <pthread.h>     	/* para manipulação de threads */
-#include <stdlib.h>			/* para exit() */
 #include <sys/socket.h>     /* para sockets */
 #include <netinet/in.h>     /* para protocols */
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 // Defines
-#define MAXNOS              6
+#define MAX_NO              6
 
 #define CONECTAR            0
 #define DESCONECTAR         1
 #define DADOS               2
+#define BAIXAR              3
 
 #define TRUE 	            1
 #define FALSE	            0
@@ -38,6 +43,7 @@
 
 #define MAX_BUFFERS_DESFRAG 5
 #define MAX_PS              10
+#define MAX_IC              10
 
 #define INFINITO            999999
 
@@ -48,9 +54,9 @@
 //#define DEBBUG_REDE_DESFRAGMENTAR
 //#define DEBBUG_MONTAR_TABELA
 //#define DEBBUG_ROTEAMENTO
-#define DEBBUG_TRANSPORTE
+//#define DEBBUG_TRANSPORTE
 //#define DEBBUG_TRANSPORTE_FLAGS
-#define DEBBUG
+//#define DEBBUG
 
 // Variaveis Globais
 
@@ -58,11 +64,9 @@ int nos_vizinhos[6]; 	// Nós vizinhos
 int flag_id; 			// Inicializa ID em 1
 int flag_iniciei; 		// Enviar tabela de rotas à vizinhos
 int flag_saida; 		// Qual nó enviar
-int ps[10];             // Estrutura do PS
-int ic[10];             // Estrutura contendo os IC do nó
+int ps[MAX_PS];             // Estrutura do PS
 int ack;                // Ack
 int syn;                // Sync
-int ic_num;             // Numero para controle de ICs
 
 pthread_mutex_t mutex_rede_enlace_env1, mutex_rede_enlace_env2;
 pthread_mutex_t mutex_rede_enlace_rcv1, mutex_rede_enlace_rcv2;
@@ -81,12 +85,14 @@ pthread_mutex_t mutex_trans_acess_exc_timer;
 
 /* Estrutura do ic */
 struct ic {
-    int num;
+    int conectado;
     int env_no;
-    int num_no;
     int ps;
+    int num_no;
     char *end_buffer;
 };
+
+struct ic ic[MAX_IC];       // Estrutura contendo os IC do nó
 
 /* Estrutura do pacote */
 struct pacote {
@@ -121,6 +127,7 @@ struct segmento {
     int flag_connect;
     int flag_syn;
     int flag_push;
+    int flag_baixar;
     int ack;
     int seqnum;
     int num_no;
@@ -295,6 +302,6 @@ void retornoTransporte();
 //Funções da Camada de Aplicacao
 int aps();
 int fps(int num_ps);
-struct ic conectar(int env_no, int ps);
-int desconectar(struct ic ic);
-void baixar(struct ic ic, char *arq);
+int conectar(int env_no, int ps);
+int desconectar(int index);
+int baixar(int index, char *data);

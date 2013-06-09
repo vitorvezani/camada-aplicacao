@@ -15,7 +15,6 @@ void *iniciarTransporte() {
     int tes, trs, tea, tra, tt;
     pthread_t threadEnviarSegmentos, threadReceberSegmentos, threadEnviarPacote, threadReceberPacote, threadTimer;
 
-
     buffer_trans_trans_rcv.data = (char *) malloc(sizeof (TAM_BUFFER_TRANS));
 
     // Inicia a thread enviarSegmentos
@@ -128,7 +127,7 @@ void *receberPacote() {
 
        /* Caso seja DADOS, envia pacote contendo os dados e o ic */
 
-        } else if (buffer_apli_trans_env.tipo == DADOS) {
+        } else if (buffer_apli_trans_env.tipo == DADOS || buffer_apli_trans_env.tipo == BAIXAR) {
 
             // Produzir buffer_trans_trans_env
             pthread_mutex_lock(&mutex_trans_trans_env1);
@@ -137,8 +136,6 @@ void *receberPacote() {
 
             // Produzir buffer_trans_trans_env
             pthread_mutex_unlock(&mutex_trans_trans_env2);
-
-            //Unlock ao termino talvez?
 
         }
 
@@ -189,7 +186,7 @@ void *enviarSegmentos() {
 
         // Dados a ser considerado como fim do envio
         if (base > (sizeof (buffer_trans_trans_env) + TAM_BUFFER_TRANS) - (TAM_BUFFER_TRANS - buffer_trans_trans_env.tam_buffer) ||
-            syn == 1)
+            syn != -1)
         {
 
         #ifdef DEBBUG_TRANSPORTE
@@ -242,19 +239,22 @@ void *enviarSegmentos() {
 
             // Envia os segmentos da janela
 
+            segmento_env.flag_connect = -1;
+            segmento_env.flag_ack     = -1;
+            segmento_env.flag_syn     = -1;
+            segmento_env.flag_push    = -1;
+            segmento_env.flag_baixar  = -1;
+
             switch(tipo){
                 case CONECTAR:
                     segmento_env.tam_buffer = sizeof (segmento_env) - TAM_MAX_BUFFER; // Tamanho de segmentos - dados
                     segmento_env.flag_connect = 1;
-                    segmento_env.flag_ack = -1;
-                    segmento_env.flag_syn = -1;
-                    segmento_env.flag_push = -1;
                     break;
                 case DADOS:
-                    segmento_env.flag_push = 1;
-                    segmento_env.flag_ack = -1;
-                    segmento_env.flag_connect = -1;
-                    segmento_env.flag_syn = -1;
+                    segmento_env.flag_push    = 1;                 
+                    break;
+                case BAIXAR:
+                    segmento_env.flag_push    = 1;                 
                     break;
                 default:
                     printf("erro fatal\n");
@@ -274,6 +274,7 @@ void *enviarSegmentos() {
 #ifdef DEBBUG_TRANSPORTE_FLAGS
             printf("[TRANS - ENV] flag_push = '%d'\n", segmento_env.flag_push);
             printf("[TRANS - ENV] flag_connect = '%d'\n", segmento_env.flag_connect);
+            printf("[TRANS - ENV] flag_baixar = '%d'\n", segmento_env.flag_baixar);
             printf("[TRANS - ENV] env_no = '%d'\n", segmento_env.env_no);
             printf("[TRANS - ENV] tam_buffer = '%d'\n", buffer_trans_rede_env.tam_buffer);
 #endif
@@ -287,7 +288,7 @@ void *enviarSegmentos() {
         }
 
             // Recebi um sinal de ack ou de syn
-            if (ack != -1 || syn == 1)
+            if (ack != -1 || syn != -1)
             {
 
                 printf("[TRANS - ENV] ack: '%d', syn: '%d'\n", ack, syn);
@@ -317,12 +318,12 @@ void *enviarSegmentos() {
 
             ack = -1;
 
-        } else if (syn == 1) {
+        } else if (syn != -1) {
 
 #ifdef DEBBUG
             printf("[TRANS - ENV] Recebi um pacote de syn\n");
 #endif
-        printf("Conexão estabelecida com sucesso!\n");
+        printf("Conexão com nó '%d' estabelecida com sucesso!\n", syn);
 
         } else {
 
@@ -331,7 +332,6 @@ void *enviarSegmentos() {
 #endif
             // Reenvia Janela
             nextseqnum = base;
-
         }
     }
 }
@@ -368,7 +368,7 @@ void *receberSegmentos() {
         /* Se for Segmento de SYN, envia SYN */
         } else if (segmento_rcv.flag_syn == 1) {
 
-            syn = 1;
+            syn = segmento_rcv.num_no;
 
         /* Se for Segmento de CONNECT, envia SYN ao nó de origem */
         } else if (segmento_rcv.flag_connect == 1) {
@@ -407,7 +407,7 @@ void *receberSegmentos() {
         // coloca o segmento no buffer interno e envia ack do prox. numseq ao nó de origem.
         */
 
-        } else if (segmento_rcv.flag_push == 1) {
+        }else if (segmento_rcv.flag_push == 1) {
 
             if (segmento_rcv.seqnum == expectedseqnum) {
 
