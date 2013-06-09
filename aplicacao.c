@@ -46,7 +46,7 @@ void *receberPacotes() {
 
         int tam_arq;
         FILE *fp;
-        struct stat s;
+        struct stat st;
 
         //Trava mutex de sincronismo
         pthread_mutex_lock(&mutex_apli_trans_rcv2);
@@ -59,14 +59,17 @@ void *receberPacotes() {
             printf("segmento.tipo: '%d', tacote.buffer: '%zd', pacote.tam_buffer: '%d'\n", pacote_rcv.tipo, strlen(pacote_rcv.buffer), pacote_rcv.tam_buffer);
             printf("[APLIC - RCV] Pedido para baixar o arquivo '%s'\n", pacote_rcv.buffer);
 
-
         fp = fopen(pacote_rcv.buffer, "r");
             if(!fp)
             perror("Fopen()");
 
-        tam_arq = s.st_size;
+        stat(pacote_rcv.buffer, &st);
+
+        tam_arq = st.st_size;
 
         printf("Tamanho do arquivo '%s': '%d' bytes\n",pacote_rcv.buffer,tam_arq);
+
+        int aps = aps();
 
         }
 

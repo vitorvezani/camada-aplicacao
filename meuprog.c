@@ -52,7 +52,7 @@ while (TRUE){
 
     ptrFuncao = strtok(cmd," ");
 
-    if(strcasecmp(ptrFuncao,"aps") == 0 || strcasecmp(ptrFuncao,"abrir_ponto_serviço") == 0)
+    if(strcasecmp(ptrFuncao,"aps") == 0 || strcasecmp(ptrFuncao,"abrir_ponto_servico") == 0)
     {
         int ps;
 
@@ -63,7 +63,7 @@ while (TRUE){
         else
             printf("ps criado '%d'.\n", ps);
 
-    }else if(strcasecmp(ptrFuncao,"fps") == 0 || strcasecmp(ptrFuncao,"fechar_ponto_serviço") == 0)
+    }else if(strcasecmp(ptrFuncao,"fps") == 0 || strcasecmp(ptrFuncao,"fechar_ponto_servico") == 0)
     {
         int fpsRet = 0;
 
@@ -89,7 +89,7 @@ while (TRUE){
         ptrParam1 = strtok(NULL," ");
         ptrParam2 = strtok(NULL," ");
 
-        if (ptrParam1 != NULL || ptrParam2 != NULL)
+        if (ptrParam1 != NULL && ptrParam2 != NULL)
         {
             conectarRet = conectar(atoi(ptrParam1), atoi(ptrParam2));
 
@@ -124,7 +124,7 @@ while (TRUE){
         ptrParam1 = strtok(NULL," ");
         ptrParam2 = strtok(NULL," ");
 
-        if (ptrParam1 != NULL || ptrParam2 != NULL)
+        if (ptrParam1 != NULL && ptrParam2 != NULL)
         {
             baixarRet = baixar( atoi(ptrParam1) , ptrParam2 );
 
