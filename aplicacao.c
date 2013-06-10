@@ -56,7 +56,7 @@ void *receberPacotes() {
         if (pacote_rcv.tipo == BAIXAR && strlen(pacote_rcv.buffer) == pacote_rcv.tam_buffer)
         {
 
-            printf("segmento.tipo: '%d', tacote.buffer: '%zd', pacote.tam_buffer: '%d'\n", pacote_rcv.tipo, strlen(pacote_rcv.buffer), pacote_rcv.tam_buffer);
+            printf("Tipo do pacote: '%d', tacote.buffer: '%zd', pacote.tam_buffer: '%d'\n", pacote_rcv.tipo, strlen(pacote_rcv.buffer), pacote_rcv.tam_buffer);
             printf("[APLIC - RCV] Pedido para baixar o arquivo '%s'\n", pacote_rcv.buffer);
 
         fp = fopen(pacote_rcv.buffer, "r");
@@ -68,8 +68,6 @@ void *receberPacotes() {
         tam_arq = st.st_size;
 
         printf("Tamanho do arquivo '%s': '%d' bytes\n",pacote_rcv.buffer,tam_arq);
-
-        int aps = aps();
 
         }
 
