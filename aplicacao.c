@@ -17,8 +17,8 @@ void *iniciarAplicacao() {
     for (i = 0; i < MAX_PS; i++)
         ps[i] = -1;
 
-    for (i = 0; i < MAX_IC; i++){
-        ic[i].ps = -1;        
+    for (i = 0; i < MAX_IC; i++) {
+        ic[i].ps = -1;
         ic[i].conectado = -1;
     }
 
@@ -44,37 +44,78 @@ void *receberPacotes() {
 
         struct pacote pacote_rcv;
 
+        int apsRet, icRet;
         int tam_arq;
         FILE *fp;
         struct stat st;
+        int nblidos;
+
+        char *data;
 
         //Trava mutex de sincronismo
         pthread_mutex_lock(&mutex_apli_trans_rcv2);
 
         retirarPacotesBufferApliTransRcv(&pacote_rcv);
 
-        if (pacote_rcv.tipo == BAIXAR && strlen(pacote_rcv.buffer) == pacote_rcv.tam_buffer)
-        {
+        if (pacote_rcv.tipo == BAIXAR && strlen(pacote_rcv.buffer) >= pacote_rcv.tam_buffer) {
 
-            printf("Tipo do pacote: '%d', tacote.buffer: '%zd', pacote.tam_buffer: '%d'\n", pacote_rcv.tipo, strlen(pacote_rcv.buffer), pacote_rcv.tam_buffer);
+#ifdef DEBBUG_APLI_BAIXAR
             printf("[APLIC - RCV] Pedido para baixar o arquivo '%s'\n", pacote_rcv.buffer);
+#endif
 
-        fp = fopen(pacote_rcv.buffer, "r");
-            if(!fp)
-            perror("Fopen()");
+            fp = fopen(pacote_rcv.buffer, "r");
+            if (!fp)
+                perror("Fopen()");
 
-        stat(pacote_rcv.buffer, &st);
+            stat(pacote_rcv.buffer, &st);
 
-        tam_arq = st.st_size;
+            tam_arq = st.st_size;
 
-        printf("Tamanho do arquivo '%s': '%d' bytes\n",pacote_rcv.buffer,tam_arq);
+#ifdef DEBBUG_APLI_BAIXAR
+            printf("Tamanho do arquivo: '%d' bytes\n", tam_arq);
+#endif
 
-        }
+            data = (char *) malloc(sizeof (tam_arq));
 
-        else if (strlen(pacote_rcv.buffer) >= pacote_rcv.tam_buffer)
-        {
-            printf("[APLIC - RCV] Tam_buffer: '%d' Bytes\n", pacote_rcv.tam_buffer);
-            printf("[APLIC - RCV] Buffer: '%s'\n", pacote_rcv.buffer);
+            fread(data, 1, tam_arq, fp);
+
+            apsRet = aps();
+
+            printf("PS: '%d' criado!\n", apsRet);
+
+            icRet = conectar(pacote_rcv.num_no, apsRet);
+
+            printf("IC: '%d' criado!\n", icRet);
+
+            enviar(icRet, pacote_rcv.buffer, data, tam_arq);
+
+            fclose(fp);
+            free(data);
+
+            sleep(50);
+
+        } else if (pacote_rcv.tipo == DADOS && strlen(pacote_rcv.buffer) >= pacote_rcv.tam_buffer) {
+
+            FILE *fp;
+            char str[256];
+
+            printf("vou criar arquivo '%s'\n", pacote_rcv.nome_arq);
+
+            mkdir("downloads", S_IRWXU | S_IRGRP | S_IXGRP);
+
+            strcat(str, "downloads/");
+            strcat(str, pacote_rcv.nome_arq);
+
+            printf("Criando arquivo '%s'\n", str);
+
+            fp = fopen(str, "w");
+
+            fwrite(pacote_rcv.buffer, sizeof (char), pacote_rcv.tam_buffer, fp);
+
+            //fwrite(pacote_rcv.buffer, sizeof(char), pacote_rcv.tam_buffer, stdout);
+
+            fclose(fp);
+
         }
 
         //Destrava mutex de sinconismo
@@ -103,7 +144,7 @@ int fps(int num_ps) {
         if (ic[i].conectado == 1 && ic[i].ps == num_ps)
             return -1;
 
-    if(ps[num_ps] != -1)
+    if (ps[num_ps] != -1)
         ps[num_ps] = -1;
     else
         return 0;
@@ -129,13 +170,13 @@ int conectar(int env_no, int num_ps) {
             flag_existe = 1;
 
     for (i = 0; i < MAX_IC; i++)
-        if (ic[i].conectado == -1){
+        if (ic[i].conectado == -1) {
             index = i;
             break;
         }
 
     for (i = 0; i < MAX_IC; i++)
-        if (ic[i].ps == num_ps){
+        if (ic[i].ps == num_ps) {
             flag_alocado = 1;
             break;
         }
@@ -148,9 +189,9 @@ int conectar(int env_no, int num_ps) {
         pacote_env.tipo = CONECTAR;
 
         ic[index].conectado = 1;
-        ic[index].env_no    = env_no;
-        ic[index].ps        = num_ps;
-        ic[index].num_no    = file_info.num_no;
+        ic[index].env_no = env_no;
+        ic[index].ps = num_ps;
+        ic[index].num_no = file_info.num_no;
 
         colocarPacotesBufferApliTransEnv(pacote_env, ic[index]);
 
@@ -166,12 +207,12 @@ int conectar(int env_no, int num_ps) {
         pthread_mutex_unlock(&mutex_apli_trans_env1);
 
         ic[index].end_buffer = buffer_apli_trans_env.retorno;
-        
+
         return index;
 
     } else {
 
-    return -1;
+        return -1;
 
     }
 }
@@ -217,19 +258,21 @@ int baixar(int index, char *data) {
     struct pacote pacote_env;
     int i, flag_existe = 0;
 
+#ifdef DEBBUG_APLI
     printf("[APLIC - BAIXAR] Data: '%s'\n", data);
     printf("[APLIC - BAIXAR] Tam_buffer: '%zd'\n", strlen(data));
+#endif
 
-    for (i = 0; i < MAX_IC; i++)
-    {
-        if (ic[index].conectado == 1)
-        {
+    for (i = 0; i < MAX_IC; i++) {
+        if (ic[index].conectado == 1) {
             flag_existe = 1;
 
             //Produz no buffer apli_trans
             pthread_mutex_lock(&mutex_apli_trans_env1);
 
             pacote_env.tipo = BAIXAR;
+            pacote_env.num_no = file_info.num_no;
+
             pacote_env.tam_buffer = strlen(data);
             strncpy(pacote_env.buffer, data, strlen(data));
 
@@ -243,10 +286,40 @@ int baixar(int index, char *data) {
             break;
         }
     }
-    if (flag_existe)
-    {
+    if (flag_existe) {
         return pacote_env.tam_buffer = strlen(data);
-    }else
+    } else
+        return -1;
+}
+
+int enviar(int index, char *nome_arq, char *data, int tam_arq) {
+
+    struct pacote pacote_env;
+    int i, flag_existe = 0;
+
+    for (i = 0; i < MAX_IC; i++) {
+        if (ic[index].conectado == 1) {
+            flag_existe = 1;
+
+            //Produz no buffer apli_trans
+            pthread_mutex_lock(&mutex_apli_trans_env1);
+
+            pacote_env.tipo = DADOS;
+            pacote_env.tam_buffer = tam_arq;
+            strncpy(pacote_env.nome_arq, nome_arq, MAX_TAM_NOME_ARQ);
+            strncpy(pacote_env.buffer, data, tam_arq);
+
+            colocarPacotesBufferApliTransEnv(pacote_env, ic[index]);
+
+            //Produz no buffer apli_trans
+            pthread_mutex_unlock(&mutex_apli_trans_env2);
+
+            break;
+        }
+    }
+    if (flag_existe) {
+        return pacote_env.tam_buffer = tam_arq;
+    } else
         return -1;
 }
 

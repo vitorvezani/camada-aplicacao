@@ -23,6 +23,7 @@
 
 // Defines
 #define MAX_NO              6
+#define MAX_TAM_NOME_ARQ    25
 
 #define CONECTAR            0
 #define DESCONECTAR         1
@@ -34,14 +35,15 @@
 
 #define TAM_MAX_BUFFER      2000
 
-#define TAM_SEGMENT         50
+#define TAM_SEGMENT         500
 #define TAM_JANELA          TAM_SEGMENT * 4
-#define TAM_BUFFER_TRANS    6000
+#define TAM_BUFFER_TRANS    18000
 
 #define NOS                 1
 #define ENLACES             2
 
 #define MAX_BUFFERS_DESFRAG 5
+
 #define MAX_PS              10
 #define MAX_IC              10
 
@@ -54,8 +56,9 @@
 //#define DEBBUG_REDE_DESFRAGMENTAR
 //#define DEBBUG_MONTAR_TABELA
 //#define DEBBUG_ROTEAMENTO
-//#define DEBBUG_TRANSPORTE
-//#define DEBBUG_TRANSPORTE_FLAGS
+#define DEBBUG_TRANSPORTE
+//#define DEBBUG_APLI
+#define DEBBUG_APLI_BAIXAR
 //#define DEBBUG
 
 // Variaveis Globais
@@ -96,8 +99,10 @@ struct ic ic[MAX_IC];       // Estrutura contendo os IC do nó
 
 /* Estrutura do pacote */
 struct pacote {
+    char nome_arq[MAX_TAM_NOME_ARQ];
     int tipo;
     int tam_buffer;
+    int num_no;
     char *retorno;
     char buffer[TAM_MAX_BUFFER];
 };
@@ -305,3 +310,6 @@ int fps(int num_ps);
 int conectar(int env_no, int ps);
 int desconectar(int index);
 int baixar(int index, char *data);
+int enviar(int index, char nome_arq[MAX_TAM_NOME_ARQ],char *data, int tam_arq);
+void sobre();
+void howto();
