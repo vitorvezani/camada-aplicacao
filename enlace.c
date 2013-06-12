@@ -140,7 +140,7 @@ void *enviarFrames() {
 #endif
 
                         /*Setar as variaveis L,C,D do garbler */
-                        set_garbler(3, 3, 3);
+                        set_garbler(0, 0, 0);
 
                         /*Funcão que envia para o nó destino o Frame */
                         if (sendto_garbled(s, &frame_env, sizeof (frame_env), 0, (struct sockaddr *) &to, sizeof (to)) < 0) {

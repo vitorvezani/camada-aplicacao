@@ -96,7 +96,7 @@ int main(int argc, char const *argv[]) {
                     else
                         printf("Erro ao conectar, verifique a existencia do ps ou se o ps já está alocado.\n");
                 } else
-                    printf("Parametros invalidos, utilize conectar 'dst_nó ps'\n");
+                    printf("Parametros invalidos, utilize 'conectar dst_nó ps'\n");
 
             } else if (strcasecmp(ptrFuncao, "desconectar") == 0 || strcasecmp(ptrFuncao, "d") == 0) {
                 int desconectarRet;
@@ -120,14 +120,13 @@ int main(int argc, char const *argv[]) {
                 ptrParam2 = strtok(NULL, " ");
 
                 if (ptrParam1 != NULL && ptrParam2 != NULL) {
-
-                    printf("Texto: '%s'\n", ptrParam2);
+                    
                     baixarRet = baixar(atoi(ptrParam1), ptrParam2);
 
                     if (baixarRet == -1)
                         printf("Erro ao baixar, verifique a existencia do ic.\n");
                 } else
-                    printf("Parametros invalidos, utilize baixar 'ic nome_arq.ext'\n");
+                    printf("Parametros invalidos, utilize 'baixar ic nome_arq.ext'\n");
 
             } else if (strcasecmp(ptrFuncao, "clear") == 0) {
                 system("clear");

@@ -35,9 +35,9 @@
 
 #define TAM_MAX_BUFFER      2000
 
-#define TAM_SEGMENT         500
+#define TAM_SEGMENT         50
 #define TAM_JANELA          TAM_SEGMENT * 4
-#define TAM_BUFFER_TRANS    18000
+#define TAM_BUFFER_TRANS    2000
 
 #define NOS                 1
 #define ENLACES             2
@@ -102,6 +102,7 @@ struct pacote {
     char nome_arq[MAX_TAM_NOME_ARQ];
     int tipo;
     int tam_buffer;
+    int mp;
     int num_no;
     char *retorno;
     char buffer[TAM_MAX_BUFFER];

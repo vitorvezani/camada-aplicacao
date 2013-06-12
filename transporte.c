@@ -189,7 +189,7 @@ void *enviarSegmentos() {
 
         // Dados a ser considerado como fim do envio
         if (base > (sizeof (buffer_trans_trans_env) + TAM_BUFFER_TRANS) - (TAM_BUFFER_TRANS - buffer_trans_trans_env.tam_buffer) ||
-                syn != -1) {
+            syn != -1) {
 
 #ifdef DEBBUG_TRANSPORTE
 
@@ -309,15 +309,12 @@ void *enviarSegmentos() {
             // Anda com a janela
             base = ack;
 
-#ifdef DEBBUG
-            printf("[TRANS - ENV] Recebi um pacote de ack: '%d'\n", ack);
-#endif
 
-#ifdef DEBBUG_TRANSPORTE
+            printf("[TRANS - ENV] Recebi um pacote de ack: '%d'\n", ack);
+
 
             printf("[TRANS - ENV] Andei com a janela: '%d'\n", base);
 
-#endif
 
             ack = -1;
 
